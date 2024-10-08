@@ -11,71 +11,68 @@ userInput.addEventListener('keydown', (event) => {
     }
 });
 
-function sendMessage() {
+async function sendMessage() {
     const message = userInput.value.trim();
-    // if message = empty do nothing
+    // If message is empty, do nothing
     if (message === '') {
         return;
     }
-    // if message = developer - show our message
-    else if (message === 'developer') {
-        // clear input value
-        userInput.value = '';
-        // append message as user - we will code it's function
-        appendMessage('user', message);
-        // sets a fake timeout that showing loading on send button
-        setTimeout(() => {
-            // send our message as bot(sender : bot)
-            appendMessage('bot', 'This Source Coded By Reza Mehdikhanlou \nYoutube : @AsmrProg');
-            // change button icon to default
-            buttonIcon.classList.add('fa-solid', 'fa-paper-plane');
-            buttonIcon.classList.remove('fas', 'fa-spinner', 'fa-pulse');
-        }, 2000);
-        return;
-    }
 
-    // else if none of above
-    // appends users message to screen
+    // Append user's message to screen
     appendMessage('user', message);
     userInput.value = '';
 
+    const url = 'https://open-ai21.p.rapidapi.com/claude3'; // Correct API endpoint
     const options = {
         method: 'POST',
         headers: {
-            'content-type': 'application/json',
-            'X-RapidAPI-Key': 'Your Key',
-            'X-RapidAPI-Host': 'chatgpt53.p.rapidapi.com'
-            // if you want use official api
-            /*
-            'content-type': 'application/json',
-            'X-RapidAPI-Key': 'Your Key',
-            'X-RapidAPI-Host': 'openai80.p.rapidapi.com'
-            */
+            'x-rapidapi-key': 'a607a74606mshc9f9a6aa6746856p12f92bjsnaecca50516d9', // Your API key
+            'x-rapidapi-host': 'open-ai21.p.rapidapi.com',
+            'Content-Type': 'application/json'
         },
-        body: `{"messages":[{"role":"user","content":"${message}"}]}`
-        // if you want use official api you need have this body
-        // `{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"${message}"}]}`
+        body: JSON.stringify({
+            messages: [
+                {
+                    role: 'user',
+                    content: message
+                }
+            ],
+            web_access: false // Use as needed
+        })
     };
-    // official api : 'https://openai80.p.rapidapi.com/chat/completions';
-    fetch('https://chatgpt53.p.rapidapi.com/', options).then((response) => response.json()).then((response) => {
-        appendMessage('bot', response.choices[0].message.content);
 
-        buttonIcon.classList.add('fa-solid', 'fa-paper-plane');
-        buttonIcon.classList.remove('fas', 'fa-spinner', 'fa-pulse');
-    }).catch((err) => {
-        if (err.name === 'TypeError') {
-            appendMessage('bot', 'Error : Check Your Api Key!');
-            buttonIcon.classList.add('fa-solid', 'fa-paper-plane');
-            buttonIcon.classList.remove('fas', 'fa-spinner', 'fa-pulse');
+    try {
+        const response = await fetch(url, options);
+
+        // Check if the response is OK (status 200-299)
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-    });
+
+        const result = await response.json(); // Parse JSON response
+        
+        // Log the entire response for debugging
+        console.log(result);
+
+        // Adjust the following line to match the new response structure
+        if (result && result.status === true) {
+            appendMessage('bot', result.result || "No content available."); // Get result from the response
+        } else {
+            appendMessage('bot', 'Unexpected response structure.'); // Fallback message
+            console.log('Received response:', result); // Log the unexpected structure
+        }
+        
+        resetButtonIcon();
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        appendMessage('bot', 'An error occurred. Please try again later.'); // Show user-friendly error
+        resetButtonIcon();
+    }
 }
 
 function appendMessage(sender, message) {
     info.style.display = "none";
-    // change send button icon to loading using fontawesome
-    buttonIcon.classList.remove('fa-solid', 'fa-paper-plane');
-    buttonIcon.classList.add('fas', 'fa-spinner', 'fa-pulse');
+    changeButtonIconToLoading();
 
     const messageElement = document.createElement('div');
     const iconElement = document.createElement('div');
@@ -87,7 +84,7 @@ function appendMessage(sender, message) {
     messageElement.classList.add(sender);
     messageElement.innerText = message;
 
-    // add icons depending on who send message bot or user
+    // Add icons depending on who sent the message (user or bot)
     if (sender === 'user') {
         icon.classList.add('fa-regular', 'fa-user');
         iconElement.setAttribute('id', 'user-icon');
@@ -100,6 +97,15 @@ function appendMessage(sender, message) {
     chatElement.appendChild(iconElement);
     chatElement.appendChild(messageElement);
     chatLog.appendChild(chatElement);
-    chatLog.scrollTo = chatLog.scrollHeight;
+    chatLog.scrollTop = chatLog.scrollHeight;  // Correctly scroll to the bottom
+}
 
+function changeButtonIconToLoading() {
+    buttonIcon.classList.remove('fa-solid', 'fa-paper-plane');
+    buttonIcon.classList.add('fas', 'fa-spinner', 'fa-pulse');
+}
+
+function resetButtonIcon() {
+    buttonIcon.classList.add('fa-solid', 'fa-paper-plane');
+    buttonIcon.classList.remove('fas', 'fa-spinner', 'fa-pulse');
 }
